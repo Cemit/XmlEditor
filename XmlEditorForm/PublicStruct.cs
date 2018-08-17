@@ -84,10 +84,6 @@ namespace XmlEditorForm
                 }
                 i++;
             }
-            FieldInfo[] parentFieldInfos = type.GetFields();
-            if (parentFieldInfos.Length != 1)
-                throw new Exception("PublicStruct:DataTable2xmlObj 错误的类型" +
-                    type.ToString());
             MethodInfo methodInfo = type.GetMethod("SetValue");
             methodInfo.Invoke(obj, new object[] { childObj });
             return obj; 

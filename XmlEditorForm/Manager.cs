@@ -104,16 +104,11 @@ namespace XmlEditorForm
 
             DataTable dataTable = new DataTable();
 
-            FieldInfo[] fieldInfos = sturctType.GetFields();
+            FieldInfo[] fieldInfos = PublicStruct.GetChildStruct(sturctType).GetFields();
 
-            
-            if (fieldInfos.Length != 1)
-                throw new Exception("Manager:CreateForm 格式错误的结构体 " +
-                    DataType.ToString());
-            fieldInfos = fieldInfos[0].FieldType.GetElementType().GetFields();
             foreach (var item in fieldInfos)
             {
-                dataTable.Columns.Add(item.ToString().Split(' ')[1]);
+                dataTable.Columns.Add(item.Name);
             }
             
 

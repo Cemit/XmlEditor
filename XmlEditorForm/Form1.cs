@@ -55,5 +55,10 @@ namespace XmlEditorForm
         {
             Manager.GetManager().SaveFile();
         }
+
+        private void toolStripButton3_Click(object sender, EventArgs e)
+        {
+            Manager.GetManager().CreateFile(saveFileDialog1);
+        }
     }
 }

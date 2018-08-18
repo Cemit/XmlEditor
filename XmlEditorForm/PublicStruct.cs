@@ -12,19 +12,25 @@ namespace XmlEditorForm
 {
     public enum StructEnum
     {
-        Fruits, Computers
+        //添加完枚举
+        //还需要修改Enum2Struct方法
+        //父结构体中必须有SetValue方法和GetValue方法
+        Fruits, Computers, ArmsDatas
     }
-    public class PublicStruct
+    public static class PublicStruct
     {
         static bool _enum2Struct_isCreate = false;
         static Type[] _enum2Struct;
-        public static Type Enum2Struct(StructEnum @struct)
+        
+        public static Type Enum2Struct(this StructEnum @struct)
         {
             if (!_enum2Struct_isCreate)
             {
                 _enum2Struct = new Type[Enum.GetValues(typeof(StructEnum)).Length];
                 _enum2Struct[(int)StructEnum.Fruits] = typeof(Fruits);
                 _enum2Struct[(int)StructEnum.Computers] = typeof(Computers);
+                _enum2Struct[(int)StructEnum.ArmsDatas] = typeof(ArmsDatas);
+
                 _enum2Struct_isCreate = true;
             }
             Type type = _enum2Struct[(int)@struct];
@@ -34,7 +40,33 @@ namespace XmlEditorForm
         public static object[][] XmlObj2Array(StructEnum @struct, object obj)
         {
             object[][] arrays;
+            Type type = @struct.Enum2Struct();
+            Type childType = type.GetChildStruct();
+            FieldInfo[] fieldInfos = type.GetFields();
+            if (fieldInfos.Length != 1)
+            {
+                throw new Exception("PublicStruct.XmlObj2Array: " +
+                    "错误的类型" + @struct.ToString());
+            }
 
+            MethodInfo methodInfo = type.GetMethod("GetValue");
+            object[] childArray = (object[])methodInfo.Invoke(obj, null);
+
+            arrays = new object[childArray.Length][];
+            int i = 0;
+            foreach (var item in childArray)
+            {
+                fieldInfos = childType.GetFields();
+                object[] array = new object[fieldInfos.Length];
+                int j = 0;
+                foreach (FieldInfo fieldInfo in fieldInfos)
+                {
+                    array[j++] = fieldInfo.GetValue(item);
+                }
+                arrays[i++] = array; 
+            }
+            return arrays;
+            /*
             switch (@struct)
             {
                 case StructEnum.Fruits:
@@ -60,6 +92,26 @@ namespace XmlEditorForm
                         + @struct.ToString());
             }
             return arrays;
+            */
+        }
+
+        public static object CreateObj(StructEnum @struct)
+        {
+            Type type = Enum2Struct(@struct);
+            Type childType = GetChildStruct(type);
+            object obj = Activator.CreateInstance(type);
+            object[] childObj = new object[1] { Activator.CreateInstance(childType) };
+
+            FieldInfo[] fieldInfos = childType.GetFields();
+            foreach (FieldInfo fieldInfo in fieldInfos)
+            {
+                fieldInfo.SetValue(childObj[0], Convert.ChangeType(0, fieldInfo.FieldType));
+            }
+
+
+            MethodInfo methodInfo = type.GetMethod("SetValue");
+            methodInfo.Invoke(obj, new object[] { childObj });
+            return obj;
         }
 
         public static object DataTable2xmlObj(StructEnum @struct, DataTable dataTable)
@@ -84,10 +136,11 @@ namespace XmlEditorForm
                 }
                 i++;
             }
+
             MethodInfo methodInfo = type.GetMethod("SetValue");
             methodInfo.Invoke(obj, new object[] { childObj });
             return obj; 
-
+            
             /**
             switch (@struct)
             {
@@ -135,42 +188,7 @@ namespace XmlEditorForm
             return ret;
         }
 
-        //将Byte转换为结构体类型
-        public static byte[] StructToBytes(object structObj, int size)
-        {
-            int num = 2;
-            byte[] bytes = new byte[size];
-            IntPtr structPtr = Marshal.AllocHGlobal(size);
-            //将结构体拷到分配好的内存空间
-            Marshal.StructureToPtr(structObj, structPtr, false);
-            //从内存空间拷贝到byte 数组
-            Marshal.Copy(structPtr, bytes, 0, size);
-            //释放内存空间
-            Marshal.FreeHGlobal(structPtr);
-            return bytes;
-
-        }
-
-        //将Byte转换为结构体类型
-        public static object ByteToStruct(byte[] bytes, Type type)
-        {
-            int size = Marshal.SizeOf(type);
-            if (size > bytes.Length)
-            {
-                return null;
-            }
-            //分配结构体内存空间
-            IntPtr structPtr = Marshal.AllocHGlobal(size);
-            //将byte数组拷贝到分配好的内存空间
-            Marshal.Copy(bytes, 0, structPtr, size);
-            //将内存空间转换为目标结构体
-            object obj = Marshal.PtrToStructure(structPtr, type);
-            //释放内存空间
-            Marshal.FreeHGlobal(structPtr);
-            return obj;
-        }
-
-        public static Type GetChildStruct(Type type)
+        public static Type GetChildStruct(this Type type)
         {
             FieldInfo[] fieldInfos = type.GetFields();
             if (fieldInfos.Length != 1)
@@ -194,27 +212,84 @@ namespace XmlEditorForm
             }
             fruit = f;
         }
+
+        public object[] GetValue()
+        {
+            object[] obj = new object[fruit.Length];
+            for (int i = 0; i < obj.Length; i++)
+            {
+                obj[i] = fruit[i];
+            }
+            return obj;
+        }
     };
 
     public struct Fruit
     {
         public int id;
         public string name;
-
-        //public Fruit GetValue()
-        //{
-        //    return new Fruit() { id = id, name = name };
-        //}
     };
 
     public struct Computers
     {
         public Computer[] computer;
+
+        public void SetValue(object[] obj)
+        {
+            Computer[] f = new Computer[obj.Length];
+            for (int i = 0; i < f.Length; i++)
+            {
+                f[i] = (Computer)obj[i];
+            }
+            computer = f;
+        }
+
+        public object[] GetValue()
+        {
+            object[] obj = new object[computer.Length];
+            for (int i = 0; i < obj.Length; i++)
+            {
+                obj[i] = computer[i];
+            }
+            return obj;
+        }
     }
     public struct Computer
     {
         public int id;
         public string name;
         public int color;
+    }
+
+    public struct ArmsDatas
+    {
+        public ArmsData[] armsDatas;
+        public void SetValue(object[] obj)
+        {
+            ArmsData[] f = new ArmsData[obj.Length];
+            for (int i = 0; i < f.Length; i++)
+            {
+                f[i] = (ArmsData)obj[i];
+            }
+            armsDatas = f;
+        }
+
+        public object[] GetValue()
+        {
+            object[] obj = new object[armsDatas.Length];
+            for (int i = 0; i < obj.Length; i++)
+            {
+                obj[i] = armsDatas[i];
+            }
+            return obj;
+        }
+    }
+
+    public struct ArmsData
+    {
+        public int id;
+        public string name;
+        public string attack; //攻击力
+        public string protect; //防御力
     }
 }

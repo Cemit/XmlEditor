@@ -18,7 +18,7 @@ namespace XmlEditorForm
         static bool isCreate = false;
 
         string dataPath = string.Empty;
-        StructEnum DataType
+        StructEnum DataType //当前选择的数据类型
         {
             get => (StructEnum)typeComboBox.SelectedIndex;
         }
@@ -139,6 +139,26 @@ namespace XmlEditorForm
             bool isSuccess = Xml.Write(DataType, dataPath, obj);
             string messageStr = isSuccess ? "保存成功！" : "保存失败";
             MessageBox.Show(messageStr);
+        }
+
+        public bool CreateFile(SaveFileDialog fileDialog)
+        {
+            if (typeComboBox.SelectedIndex == -1)
+            {
+                MessageBox.Show("请先选择结构类型！");
+                return false;
+            }
+            fileDialog.ShowDialog();
+            string path = fileDialog.FileName;
+            //Console.WriteLine("path:" + path);
+            if (path == "")
+            {
+                return false;
+            }
+            bool b = Xml.Write(DataType, path, PublicStruct.CreateObj(DataType));
+            string MessageText = b ? "创建文件成功！" : "创建文件失败";
+            MessageBox.Show(MessageText);
+            return b;
         }
     }
 }
